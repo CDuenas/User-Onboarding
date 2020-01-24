@@ -3,22 +3,25 @@ import { Form, Field, withFormik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
 
-const UserForm = ({ errors, touched, values, status }) => {
-    const [user, setUser] = useState([]);
+const UserForm = ({ errors, touched, values, status, handleSubmit }) => {
+    const [users, setUsers] = useState([{ name: 'chris', email:'chris@LS.com' , password: 'hadsfg'}]);
 
-
+    useEffect(() => {
+        status && setUsers([...users, status]);
+      }, [status]);
 
 
     return (
         <div className="user-form">
             <h1>User Form</h1>
-            <Form>
+            <Form onSubmit={handleSubmit}>
                 <Field 
                 type="text"
                 name="name"
                 placeholder="Name"
                 value={values.name}
                 />
+                {touched.name && errors.name && <p>{errors.name}</p>}
 
                 <Field 
                 type="text"
@@ -26,6 +29,7 @@ const UserForm = ({ errors, touched, values, status }) => {
                 placeholder="Email"
                 value={values.email}
                 />
+                {touched.email && errors.email && <p>{errors.email}</p>}
 
                 <Field 
                 type="text"
@@ -33,40 +37,62 @@ const UserForm = ({ errors, touched, values, status }) => {
                 placeholder="Password"
                 value={values.password}
                 />
+                {touched.password && errors.password && <p>{errors.password}</p>}
 
-                <Field 
-                type="checkbox"
-                name="tos"
-                value={values.tos}
-                />
+                <label>
+                    Do you agree to the terms of service?
+                    <Field type="checkbox" name="tos" />
+                </label>
 
-                <button type="submit">Submit</button>
+                <button type="button" onClick={handleSubmit}>Submit</button>
             </Form>
 
-            {user.map(user => (
+            {users.map(user => (
                 <ul>
                     <li>Name: {user.name}</li>
                     <li>Email: {user.email}</li>
                     <li>Password: {user.password}</li>
-                </ul>
+                </ul> 
             ))}
         </div>
     );
 };
 
 const FormikUserForm = withFormik({
-    mapPropsToValues({ user }) {
+    mapPropsToValues: ({ name, email, password, tos }) => {
         return {
-            user: user || "",
-            email: "",
-            password: "",
-            tos: false
+            name: name || "",
+            email:  email || "",
+            password: password || "",
+            tos: tos || false
         };
     },
 
 
-    
-})
+    validationSchema: Yup.object().shape({
+        name: Yup.string().required("Please provide your name!"),
+        email: Yup.string().required("Please provide your email-address"),
+        password: Yup.string().required("Please enter your password"),
+        tos: Yup.bool()
+    }),
+
+    handleSubmit:(values, { setStatus, resetForm , setSubmitting}) => {
+        console.log(values);
+        axios
+            .post("https://reqres.in/api/users", values)
+
+            .then(res => {
+                console.log("Succes:", res);
+                setStatus(res.data);
+                resetForm();
+                setSubmitting(false);
+            })
+            .catch(err => {
+                console.log("Error:", err);
+                setSubmitting(false);
+            });
+    }
+})(UserForm);
 
 
-export default UserForm;
+export default FormikUserForm;
